@@ -1,0 +1,14 @@
+﻿# filepath: .gitignore
+# Data & checkpoints
+framework/Data/
+framework/checkpoint/
+*.pth
+*.pkl
+*.csv
+*.json
+
+# Node & Python artifacts
+node_modules/
+.env
+__pycache__/
+*.pyc
