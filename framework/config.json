@@ -1,7 +1,0 @@
-{
-    "model_path": "framework/checkpoint/best_model.pth",
-    "n_users": 100,
-    "n_items": 500,
-    "embedding_dim": 64,
-    "n_layers": 3
-}
