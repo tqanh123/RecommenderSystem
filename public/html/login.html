@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TenrecRec</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center gap-2 text-blue-600 mb-2">
+                <span class="material-symbols-outlined text-5xl">hub</span>
+            </div>
+            <h1 class="text-3xl font-bold text-slate-800">TenrecRec</h1>
+            <p class="text-slate-500 text-sm mt-1">LightGCN Recommendation System</p>
+        </div>
+
+        <!-- Login Form -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">
+                    Select User to Login
+                </label>
+                
+                <!-- Loading State -->
+                <div id="loading" class="text-center py-8">
+                    <div class="inline-block w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-2 text-slate-600 text-sm">Loading users...</p>
+                </div>
+
+                <!-- User List -->
+                <div id="user-list" class="hidden space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Users will be inserted here -->
+                </div>
+
+                <!-- Error State -->
+                <div id="error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+                    <p class="font-bold text-sm">Error loading users</p>
+                    <p id="error-message" class="text-xs mt-1"></p>
+                </div>
+            </div>
+
+            <!-- Guest Login -->
+            <div class="pt-4 border-t border-slate-200">
+                <button onclick="loginAsGuest()" 
+                        class="w-full py-3 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition flex items-center justify-center gap-2">
+                    <span class="material-symbols-outlined">person_off</span>
+                    Continue as Guest
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-8 text-center text-xs text-slate-400">
+            <p>Demo System - No password required</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api';
+
+        /**
+         * Fetch all users from database
+         */
+        async function fetchUsers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to fetch users');
+                }
+                
+                return data.users;
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                throw error;
+            }
+        }
+
+        /**
+         * Render users to list
+         */
+        function renderUsers(users) {
+            const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
+            
+            if (!users || users.length === 0) {
+                userList.innerHTML = '<p class="text-center text-slate-500 py-4 text-sm">No users found</p>';
+                userList.classList.remove('hidden');
+                document.getElementById('loading').classList.add('hidden');
+                return;
+            }
+
+            users.forEach(user => {
+                const userCard = document.createElement('button');
+                userCard.className = "w-full p-4 border border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left flex items-center gap-3 group";
+                userCard.onclick = () => loginAsUser(user);
+                
+                const username = user.username || `User ${user._id}`;
+                const userId = user._id;
+                
+                userCard.innerHTML = `
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        ${username.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800 group-hover:text-blue-600">${username}</p>
+                        <p class="text-xs text-slate-500">ID: ${userId.substring(0, 8)}...</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400 group-hover:text-blue-600">
+                        arrow_forward
+                    </span>
+                `;
+                
+                userList.appendChild(userCard);
+            });
+            
+            userList.classList.remove('hidden');
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        /**
+         * Login as selected user
+         */
+        function loginAsUser(user) {
+            // Save user to sessionStorage
+            sessionStorage.setItem('currentUser', JSON.stringify({
+                _id: user._id,
+                username: user.username,
+                tenrec_uid: user.tenrec_uid,
+                model_index: user.model_index
+            }));
+            
+            console.log('✅ Logged in as:', user.username);
+            
+            // Redirect to main app
+            window.location.href = '/';
+        }
+
+        /**
+         * Login as guest (anonymous)
+         */
+        function loginAsGuest() {
+            const guestId = 'guest_' + Math.random().toString(36).substr(2, 9);
+            
+            sessionStorage.setItem('currentUser', JSON.stringify({
+                _id: guestId,
+                username: 'Guest User',
+                isGuest: true
+            }));
+            
+            console.log('✅ Logged in as Guest:', guestId);
+            
+            // Redirect to main app
+            window.location.href = '/';
+        }
+
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error').classList.remove('hidden');
+            document.getElementById('error-message').textContent = message;
+        }
+
+        /**
+         * Initialize - Load users on page load
+         */
+        async function init() {
+            try {
+                const users = await fetchUsers();
+                renderUsers(users);
+                console.log(`✅ Loaded ${users.length} users`);
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError(error.message || 'Failed to load users. You can continue as Guest.');
+                
+                // Show guest button even if error
+                document.getElementById('user-list').classList.remove('hidden');
+            }
+        }
+
+        // Start when page loads
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

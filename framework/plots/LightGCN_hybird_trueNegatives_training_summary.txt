@@ -1,0 +1,10 @@
+=== TRAINING SUMMARY - LIGHTGCN ===
+
+📋 CONFIGURATION:
+Model: LightGCN_hybird
+Dataset: .\data\QB-video.csv
+Learning Rate: 0.005
+Batch Size: 4096
+Embedding Factors: 128
+Number of Layers: 2
+Epochs: 20
