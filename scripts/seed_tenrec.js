@@ -109,7 +109,9 @@ const seedData = async () => {
             tenrec_uid: user.tenrec_uid,
             model_index: user.model_index, // Số 0, 1, 2... lưu vào DB
             embedding: user.embedding,
-            preferences: { music: 0.1, Technology: 0.1 } // Default
+            preferences: { music: 0.1, Technology: 0.1 }, // Default
+            gender: user.gender,
+            age: user.age,
         }));
 
         const createdUsers = await User.insertMany(usersToInsert);

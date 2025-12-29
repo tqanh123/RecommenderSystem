@@ -1,10 +1,29 @@
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Interaction = require('../models/Interaction');
+const axios = require('axios');
 
 class RecommenderService {
     constructor() {
         this.isReady = false;
+        this.pythonServiceUrl = process.env.PY_RECOMMENDER_URL || 'http://localhost:5001/recommend';
+    }
+
+    async getRecommendations(userId, limit = 10, model = 'baseline') {
+        // Nếu dùng mô hình đầy đủ → gọi dịch vụ Python
+        if (model === 'full') {
+        try {
+            const res = await axios.get(`${this.pythonServiceUrl}/${userId}`, {
+            params: { k: limit, model: 'full' }
+            });
+            return res.data.recommendations;
+        } catch (err) {
+            console.error('Python inference error:', err.message);
+            // fallback: dùng phương pháp baseline hiện tại
+        }
+        }
+        // baseline: sử dụng dot product như trước
+        return this.getBaselineRecommendations(userId, limit);
     }
 
     /**
@@ -28,7 +47,7 @@ class RecommenderService {
     /**
      * Get recommendations for user (exclude interacted items)
      */
-    async getRecommendations(userId, limit = 20) {
+    async getBaselineRecommendations(userId, limit = 20) {
         try {
             // 1. Lấy thông tin user và embedding
             const user = await User.findById(userId).lean();

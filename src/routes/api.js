@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Interaction = require('../models/Interaction');
+const interactions = await Interaction.find().lean();
 const recommender = require('../services/recommender');
 
 /**
