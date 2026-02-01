@@ -275,7 +275,14 @@
             return;
         }
 
-        items.forEach(item => {
+        // Sort items by prediction score (highest first)
+        const sortedItems = [...items].sort((a, b) => {
+            const scoreA = a.predictionScore || 0;
+            const scoreB = b.predictionScore || 0;
+            return scoreB - scoreA;
+        });
+
+        sortedItems.forEach(item => {
             const card = document.createElement('div');
             card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition";
             
@@ -337,6 +344,7 @@
      * Handle Click action (renamed from View)
      */
     async function handleClick(itemId, title) {
+        // Log interaction and wait for completion
         await logInteraction(itemId, 'click');
         console.log(`👆 Clicked: ${title}`);
         
@@ -349,8 +357,19 @@
         // Force redraw canvas with new user position
         redrawCanvas();
         
-        // Wait for backend to update embedding, then refresh recommendations
-        setTimeout(() => refreshRecommendations(), 1500);
+        // Visual feedback
+        const notification = document.createElement('div');
+        notification.className = 'fixed top-20 right-6 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-bounce';
+        notification.innerHTML = `
+            <span class="material-symbols-outlined text-base">touch_app</span>
+            <span>Clicked: ${title}</span>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.remove(), 2000);
+        
+        // Refresh recommendations (interaction already saved in DB)
+        await refreshRecommendations();
     }
 
     /**
@@ -379,8 +398,8 @@
         
         setTimeout(() => notification.remove(), 2000);
         
-        // Wait for backend to update embedding, then refresh recommendations
-        setTimeout(() => refreshRecommendations(), 1500);
+        // Refresh recommendations (interaction already saved in DB)
+        await refreshRecommendations();
     }
 
     /**
@@ -411,8 +430,8 @@
         
         console.log(`🔗 Shared: ${title}`);
         
-        // Wait for backend to update embedding, then refresh recommendations
-        setTimeout(() => refreshRecommendations(), 1500);
+        // Refresh recommendations (interaction already saved in DB)
+        await refreshRecommendations();
     }
 
     /**
@@ -420,18 +439,31 @@
      */
     async function refreshRecommendations() {
         try {
+            console.log('🔄 Refreshing recommendations...');
+            
+            // Show loading state
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('items-grid').classList.add('hidden');
             
+            // Fetch new recommendations (excluding already interacted items)
             const items = await fetchRecommendations(50);
+            
+            if (!items || items.length === 0) {
+                console.warn('⚠️ No new recommendations available');
+                document.getElementById('loading').classList.add('hidden');
+                return;
+            }
+            
+            // Render new items
             renderItems(items);
             
             // Re-fetch user embedding and update visualization with new items
             await updateVisualizationAfterInteraction(items);
             
-            console.log(`🔄 Refreshed: ${items.length} new recommendations`);
+            console.log(`✅ Refreshed: ${items.length} new recommendations loaded`);
         } catch (error) {
-            console.error('Error refreshing recommendations:', error);
+            console.error('❌ Error refreshing recommendations:', error);
+            showError('Failed to refresh recommendations. Please try again.');
         }
     }
 
@@ -642,22 +674,37 @@
      * Add interaction to visualization
      */
     async function addInteractionToVisualization(itemId, type) {
-        // Find the item in current items
-        const item = embeddingData.items.find(i => i._id === itemId);
+        // Check if item is already in interacted items
+        const alreadyInteracted = embeddingData.interactedItems.some(i => i._id === itemId);
         
-        if (item) {
-            // Add to interacted items if not already there
-            const alreadyInteracted = embeddingData.interactedItems.some(i => i._id === itemId);
-            if (!alreadyInteracted) {
+        if (!alreadyInteracted) {
+            // Try to find item in current recommendations
+            let item = embeddingData.items.find(i => i._id === itemId);
+            
+            // If not found in recommendations, fetch from backend
+            if (!item) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/items?limit=1000&embedding=true`);
+                    const data = await response.json();
+                    item = data.items.find(i => i._id === itemId);
+                } catch (error) {
+                    console.error('Error fetching item:', error);
+                }
+            }
+            
+            // Add to interacted items if found and has embedding
+            if (item && item.embedding && item.embedding.length > 0) {
                 embeddingData.interactedItems.push(item);
-                console.log(`📌 Item added to interacted list: ${item.title}`);
+                console.log(`📌 Item added to interacted list: ${item.title || itemId}`);
                 
                 // Load other users who interacted with this item
                 await loadOtherUsersForItem(itemId);
+            } else {
+                console.warn(`⚠️ Could not add item ${itemId} to visualization (no embedding)`);
             }
         }
         
-        // Add interaction
+        // Add interaction record
         embeddingData.interactions.push({
             itemId,
             type,

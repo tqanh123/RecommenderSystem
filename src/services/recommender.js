@@ -47,6 +47,14 @@ class RecommenderService {
 
     /**
      * Get recommendations for user (exclude interacted items)
+     * Main entry point - calls baseline recommendations
+     */
+    async getRecommendations(userId, limit = 20) {
+        return this.getBaselineRecommendations(userId, limit);
+    }
+
+    /**
+     * Get baseline recommendations (internal method)
      */
     async getBaselineRecommendations(userId, limit = 20) {
         try {
@@ -70,6 +78,9 @@ class RecommenderService {
                         const filteredRecs = recommendations.filter(rec => 
                             !interactedItemIds.includes(rec._id?.toString())
                         );
+                        
+                        // Sort by predictionScore descending (maintain order after filtering)
+                        filteredRecs.sort((a, b) => (b.predictionScore || 0) - (a.predictionScore || 0));
                         
                         console.log(`✅ Python model returned ${filteredRecs.length} recommendations for user ${userId}`);
                         return filteredRecs.slice(0, limit);

@@ -3,8 +3,16 @@ const router = express.Router();
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Interaction = require('../models/Interaction');
-const interactions = await Interaction.find().lean();
 const recommender = require('../services/recommender');
+
+// Cache for interactions (lazy loaded)
+let interactionsCache = null;
+async function getInteractions() {
+    if (!interactionsCache) {
+        interactionsCache = await Interaction.find().lean();
+    }
+    return interactionsCache;
+}
 
 /**
  * GET /api/items - Get all items
