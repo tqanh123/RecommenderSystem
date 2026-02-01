@@ -48,7 +48,7 @@ class RecommenderService {
     /**
      * Get recommendations for user (exclude interacted items)
      */
-    async getRecommendations(userId, limit = 20) {
+    async getBaselineRecommendations(userId, limit = 20) {
         try {
             // 1. Lấy thông tin user và embedding
             const user = await User.findById(userId).lean();

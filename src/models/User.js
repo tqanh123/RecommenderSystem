@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
         lifestyle: { type: Number, default: 0.1 },
         others: { type: Number, default: 0.1 },
     },
+    gender: { type: Number }, 
+    age: { type: Number },
     embedding: [Number], // Stored vector from LightGCN
     createdAt: { type: Date, default: Date.now }
 });
