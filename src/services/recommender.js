@@ -1,10 +1,30 @@
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Interaction = require('../models/Interaction');
+const axios = require('axios');
 
 class RecommenderService {
     constructor() {
         this.isReady = false;
+        this.pythonServiceUrl = process.env.PYTHON_SERVICE_URL || 'http://localhost:5001';
+        this.usePythonModel = process.env.USE_PYTHON_MODEL === 'true';
+        this.checkPythonService();
+    }
+
+    /**
+     * Check if Python inference service is available
+     */
+    async checkPythonService() {
+        try {
+            const response = await axios.get(`${this.pythonServiceUrl}/health`, { timeout: 2000 });
+            if (response.data.model_loaded) {
+                console.log('✅ Python LightGCN inference service is available');
+                this.usePythonModel = true;
+            }
+        } catch (error) {
+            console.log('⚠️  Python inference service not available, using fallback recommendations');
+            this.usePythonModel = false;
+        }
     }
 
     /**
@@ -37,7 +57,30 @@ class RecommenderService {
                 return this.getPopularItems(limit);
             }
 
-            // 2. Lấy danh sách items user đã tương tác
+            // 2. Try using Python LightGCN model if available
+            if (this.usePythonModel) {
+                try {
+                    const recommendations = await this.getPythonRecommendations(userId, limit * 2); // Get more for filtering
+                    if (recommendations && recommendations.length > 0) {
+                        // Filter out interacted items
+                        const interactions = await Interaction.find({ userId }).select('itemId').lean();
+                        const interactedItemIds = interactions.map(i => i.itemId.toString());
+                        
+                        // Map Python item IDs to MongoDB items
+                        const filteredRecs = recommendations.filter(rec => 
+                            !interactedItemIds.includes(rec._id?.toString())
+                        );
+                        
+                        console.log(`✅ Python model returned ${filteredRecs.length} recommendations for user ${userId}`);
+                        return filteredRecs.slice(0, limit);
+                    }
+                } catch (error) {
+                    console.log('⚠️  Python model failed, falling back to baseline:', error.message);
+                }
+            }
+
+            // 3. Fallback: Use baseline recommendations
+            // Lấy danh sách items user đã tương tác
             const interactions = await Interaction.find({ userId })
                 .select('itemId')
                 .lean();
@@ -153,7 +196,7 @@ class RecommenderService {
     /**
      * Get popular items (fallback)
      */
-    async getPopularItems(limit = 0) {
+    async getPopularItems(limit = 20) {
         try {
             const items = await Item.find()
                 .sort({ like_count: -1, click_count: -1 })
@@ -164,6 +207,52 @@ class RecommenderService {
         } catch (error) {
             console.error('Error getting popular items:', error);
             return [];
+        }
+    }
+
+    /**
+     * Get recommendations from Python LightGCN model
+     */
+    async getPythonRecommendations(userId, limit = 20) {
+        try {
+            const response = await axios.get(`${this.pythonServiceUrl}/recommend/${userId}`, {
+                params: { k: limit },
+                timeout: 5000
+            });
+
+            if (!response.data.success) {
+                throw new Error(response.data.error || 'Python service error');
+            }
+
+            // Map Python recommendations to MongoDB items
+            const itemIds = response.data.recommendations.map(r => r.item_id);
+            const items = await Item.find({ item_id: { $in: itemIds } })
+                .select('+embedding')
+                .lean();
+
+            // Attach prediction scores from Python model
+            const itemsWithScores = items.map(item => {
+                const rec = response.data.recommendations.find(r => r.item_id === item.item_id);
+                const score = rec ? rec.score : 0;
+                
+                // Map score to prediction percentage (60-95%)
+                const normalized = (score + 1) / 2; // Assume scores are roughly in [-1, 1]
+                const prediction = Math.round(60 + (normalized * 35));
+                
+                return {
+                    ...item,
+                    embeddingScore: score,
+                    predictionScore: Math.min(95, Math.max(60, prediction))
+                };
+            });
+
+            // Sort by score (highest first)
+            itemsWithScores.sort((a, b) => b.embeddingScore - a.embeddingScore);
+
+            return itemsWithScores;
+        } catch (error) {
+            console.error('Error getting Python recommendations:', error.message);
+            throw error;
         }
     }
 

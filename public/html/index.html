@@ -29,10 +29,6 @@
         <span class="material-symbols-outlined text-xl">dynamic_feed</span>
         <span>For You (Feed)</span>
     </button>
-    <button class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50" onclick="alert('Demo: Data View')">
-        <span class="material-symbols-outlined text-xl">database</span>
-        <span>Dataset Manager</span>
-    </button>
 </nav>
 </aside>
 
@@ -345,9 +341,15 @@
         console.log(`👆 Clicked: ${title}`);
         
         // Add to visualization immediately (show line)
-        addInteractionToVisualization(itemId, 'click');
+        await addInteractionToVisualization(itemId, 'click');
         
-        // Wait for backend to update embedding, then refresh
+        // Re-fetch updated user embedding from backend
+        await refetchUserEmbedding();
+        
+        // Force redraw canvas with new user position
+        redrawCanvas();
+        
+        // Wait for backend to update embedding, then refresh recommendations
         setTimeout(() => refreshRecommendations(), 1500);
     }
 
@@ -358,7 +360,13 @@
         await logInteraction(itemId, 'like');
         
         // Add to visualization immediately (show line)
-        addInteractionToVisualization(itemId, 'like');
+        await addInteractionToVisualization(itemId, 'like');
+        
+        // Re-fetch updated user embedding from backend
+        await refetchUserEmbedding();
+        
+        // Force redraw canvas with new user position
+        redrawCanvas();
         
         // Visual feedback
         const notification = document.createElement('div');
@@ -371,7 +379,7 @@
         
         setTimeout(() => notification.remove(), 2000);
         
-        // Wait for backend to update embedding, then refresh
+        // Wait for backend to update embedding, then refresh recommendations
         setTimeout(() => refreshRecommendations(), 1500);
     }
 
@@ -382,7 +390,13 @@
         await logInteraction(itemId, 'share');
         
         // Add to visualization immediately (show line)
-        addInteractionToVisualization(itemId, 'share');
+        await addInteractionToVisualization(itemId, 'share');
+        
+        // Re-fetch updated user embedding from backend
+        await refetchUserEmbedding();
+        
+        // Force redraw canvas with new user position
+        redrawCanvas();
         
         // Visual feedback
         const notification = document.createElement('div');
@@ -397,7 +411,7 @@
         
         console.log(`🔗 Shared: ${title}`);
         
-        // Wait for backend to update embedding, then refresh
+        // Wait for backend to update embedding, then refresh recommendations
         setTimeout(() => refreshRecommendations(), 1500);
     }
 
@@ -717,6 +731,26 @@
         }
     }
     
+    /**
+     * Re-fetch user embedding from backend after interaction
+     */
+    async function refetchUserEmbedding() {
+        try {
+            const userResponse = await fetch(`${API_BASE_URL}/users?embedding=true`);
+            const usersData = await userResponse.json();
+            const updatedUser = usersData.users.find(u => u._id === currentUser._id);
+            
+            if (updatedUser && updatedUser.embedding) {
+                embeddingData.user = updatedUser;
+                console.log('✅ User embedding re-fetched - position will update in real-time');
+                return true;
+            }
+        } catch (error) {
+            console.error('Error re-fetching user embedding:', error);
+        }
+        return false;
+    }
+
     /**
      * Update visualization after interaction (re-fetch user embedding and new items)
      */

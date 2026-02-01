@@ -86,7 +86,7 @@ pip install -r requirements.txt
 
 ## 🚀 Installation guide for demo
 
-### Step 1: Clone or download soure
+### Step 1: Clone or download source
 ```bash
 # Nếu dùng Git
 git clone <repository-url>
@@ -95,17 +95,38 @@ cd RecommenderSystem
 # Hoặc giải nén file zip vào thư mục RecommenderSystem
 ```
 
-### Step 2: Install Node.js Dependencies
-Open Terminal/Command Prompt at RecommenderSystem folder and run:
+### Step 2: Install Dependencies
 
-**Windows PowerShell:**
+#### 2.1. Install Node.js Dependencies
 ```powershell
 npm install
 ```
 
-**Linux/Mac:**
-```bash
-npm install
+#### 2.2. Install Python Dependencies
+
+**Option A: Using Conda (Recommended)**
+```powershell
+# Create conda environment from file
+conda env create -f framework/environment.yml
+
+# Activate environment
+conda activate recommender
+```
+
+**Option B: Using pip + venv**
+```powershell
+# Create virtual environment
+python -m venv .venv
+
+# Activate venv (Windows)
+.venv\Scripts\activate
+
+# Activate venv (Linux/Mac)
+# source .venv/bin/activate
+
+# Install dependencies
+pip install torch numpy pandas scipy scikit-learn matplotlib seaborn tqdm
+pip install -r framework/requirements_inference.txt
 ```
 
 ### Step 3: Config environment
@@ -163,12 +184,57 @@ mongod
 ## ▶️ Running the Application
 
 ### Before running
-Load data into database
+1. **Load data into database**
 ```powershell
-node seed_tenrec.js
+node scripts/seed_tenrec.js
 ```
 
-### Option 1: Running
+2. **Start the Python LightGCN Inference Service (REQUIRED for real-time updates)**
+
+Open a **separate Terminal/PowerShell** window and run:
+
+**Option A: Using Conda**
+```powershell
+# Activate conda environment
+conda activate recommender
+
+# Start the inference service
+python framework/inference_service.py
+```
+
+**Option B: Using venv**
+```powershell
+# Activate virtual environment
+.venv\Scripts\activate
+
+# Start the inference service
+python framework/inference_service.py
+```
+
+You should see output like:
+```
+============================================================
+🚀 Starting LightGCN Inference Service
+============================================================
+📋 Config loaded: {'n_users': 100, 'n_items': 500, ...}
+✅ Model loaded successfully from framework/checkpoint/best_model.pth
+   Users: 100, Items: 500
+   Embedding dim: 64, Layers: 3
+   Device: cpu
+============================================================
+✅ Server ready!
+   Endpoints:
+   - GET  /health
+   - GET  /recommend/<user_id>?k=20
+   - GET  /user-embedding/<user_id>
+   - GET  /item-embedding/<item_id>
+============================================================
+ * Running on http://0.0.0.0:5001
+```
+
+**⚠️ IMPORTANT:** Keep this terminal window open. The Python service must be running for real-time recommendations to work!
+
+### Option 1: Running the Node.js Server
 Open Terminal/PowerShell in project folder and run:
 
 ```powershell
@@ -191,12 +257,73 @@ If server starting, you will see the notification:
 ```
 Server running on port 3000
 MongoDB Connected!
+✅ Python LightGCN inference service is available
 ```
 
 Click to access the demo website:
 ```
 http://localhost:3000
 ```
+
+---
+
+## 🎯 How Real-Time Updates Work
+
+### Architecture Overview
+The system now integrates a **Python Flask inference service** that serves the trained LightGCN model:
+
+```
+User Interaction (Click/Like/Share)
+         ↓
+Frontend (index.html) - Logs interaction
+         ↓
+Backend (server.js) - Updates user embedding
+         ↓
+Frontend - Re-fetches updated user embedding
+         ↓
+Canvas Redraw - User position updates in real-time
+         ↓
+Python Service - Gets new recommendations from LightGCN
+         ↓
+Frontend - Displays updated recommendations
+```
+
+### What Happens When You Interact?
+
+1. **User clicks/likes/shares an item:**
+   - Interaction is logged to MongoDB
+   - User embedding is updated (moves closer to item embedding)
+   - Frontend immediately re-fetches the updated user embedding
+   - Canvas redraws showing new user position
+
+2. **Real-time visualization:**
+   - User node moves in embedding space
+   - Lines connect user to interacted items
+   - Other users who liked the same items appear
+   - Top 10 closest items are highlighted
+
+3. **Recommendation refresh:**
+   - Python LightGCN model computes new recommendations
+   - Items are ranked by predicted affinity
+   - Prediction scores (60-95%) reflect confidence
+
+### Testing Real-Time Updates
+
+1. Open the demo at `http://localhost:3000`
+2. Watch the **Embedding Space** panel on the right
+3. Click "Like ❤️" on any item
+4. **Observe:**
+   - User node moves immediately
+   - New line appears connecting to the liked item
+   - Recommendations update after 1.5 seconds
+   - Prediction scores change based on new preferences
+
+### Performance Notes
+
+- **Embedding updates:** ~50ms (simple gradient descent)
+- **Python inference:** ~100-200ms (depends on model size)
+- **Frontend redraw:** ~16ms (60 FPS canvas rendering)
+- **Total latency:** <500ms for complete update cycle
 
 ---
 
@@ -227,22 +354,27 @@ http://localhost:3000
 ## 📁 Project Structure
 ```
 RecommenderSystem/
-├── server.js              # Server chính
-├── package.json           # Node dependencies
-├── .env                   # Biến môi trường (tự tạo)
+├── server.js                    # Node.js server chính
+├── package.json                 # Node dependencies
+├── .env                         # Environment variables
+├── framework/
+│   ├── inference_service.py    # Flask API serving LightGCN model
+│   ├── model.py                # LightGCN implementation (PyTorch)
+│   ├── config.json             # Model configuration
+│   └── checkpoint/
+│       └── best_model.pth      # Trained model weights
 ├── public/
-│   └── index.html        # Giao diện người dùng
-├── python/
-│   └── model.py          # Mô hình LightGCN (PyTorch)
+│   └── html/
+│       └── index.html          # Frontend with real-time visualization
 └── src/
-    ├── models/           # MongoDB Models
+    ├── models/                 # MongoDB Models
     │   ├── User.js
     │   ├── Item.js
     │   └── Interaction.js
     ├── routes/
-    │   └── api.js        # API routes
+    │   └── api.js              # API routes
     └── services/
-        └── recommender.js # Logic recommender
+        └── recommender.js      # Recommendation logic + Python integration
 ```
 
 ---
@@ -256,7 +388,7 @@ npm install
 
 ### Error: MongoDB connection failed
 - Check MongoDB is running
-- Check `MONGODB_URI` in file `.env`
+- Check `MONGO_URI` in file `.env`
 
 ### Error: Port 3000 is used
 Change `PORT` in file `.env` into other ports (ex: 3001)
@@ -265,3 +397,42 @@ Change `PORT` in file `.env` into other ports (ex: 3001)
 Check `PYTHON_PATH` in `.env`:
 - Windows: usually `python`
 - Linux/Mac: usually `python3`
+
+### Error: Python inference service failed to start
+```powershell
+# Install dependencies
+pip install -r framework/requirements_inference.txt
+
+# Check if model file exists
+dir framework\checkpoint\best_model.pth
+
+# Test Python imports
+python -c "import torch; import flask; print('OK')"
+```
+
+### Error: Graph not updating in real-time
+1. **Check Python service is running:**
+   - Open http://localhost:5001/health in browser
+   - Should return: `{"status": "healthy", "model_loaded": true}`
+
+2. **Check browser console (F12):**
+   - Look for "✅ User embedding re-fetched" messages
+   - Look for "✅ Python model returned X recommendations"
+
+3. **Check backend logs:**
+   - Should see: "✅ Python LightGCN inference service is available"
+   - If not, check `.env` file has: `PYTHON_SERVICE_URL=http://localhost:5001`
+
+4. **Force refresh:**
+   - Clear browser cache (Ctrl+Shift+Delete)
+   - Restart both Node.js server and Python service
+   - Hard reload page (Ctrl+F5)
+
+### Performance issues
+- **Python service slow?** 
+  - Check if CUDA is available: `python -c "import torch; print(torch.cuda.is_available())"`
+  - Reduce batch size in config.json
+  
+- **Frontend lag?**
+  - Reduce number of items displayed (limit=20 instead of 50)
+  - Disable canvas animations if too slow

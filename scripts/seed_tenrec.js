@@ -5,13 +5,14 @@ const path = require('path');
 const User = require('../src/models/User');
 const Item = require('../src/models/Item');
 const Interaction = require('../src/models/Interaction');
-
-const MONGO_URI = 'mongodb://localhost:27017/tenrecrec';
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/tenrec";
 const DEMO_LIMIT = 300; // Số interaction để demo
 
 const seedData = async () => {
     try {
-        await mongoose.connect(MONGO_URI);
+        await mongoose.connect(MONGO_URI, {
+            serverSelectionTimeoutMS: 30000,
+        });
         console.log('🔗 Connected to MongoDB');
 
         // 1. Đọc file JSON từ Python export

@@ -9,12 +9,13 @@
     "seed": "node scripts/seed_db.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^7.0.3",
-    "cors": "^2.8.5",
+    "axios": "^1.13.3",
     "body-parser": "^1.20.2",
+    "child_process": "^1.0.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "child_process": "^1.0.2"
+    "express": "^4.18.2",
+    "mongoose": "^7.0.3"
   },
   "author": "TenrecRec Team",
   "license": "MIT"
