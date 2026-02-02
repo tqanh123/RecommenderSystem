@@ -5,7 +5,7 @@ A dynamic web application demonstrating a Graph Neural Network (LightGCN) recomm
 
 ---
 
-## 📋 Yêu Cầu Hệ Thống / Prerequisites
+## Yêu Cầu Hệ Thống / Prerequisites
 
 Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt:
 - **Node.js** (phiên bản 14 trở lên) - [Tải tại đây](https://nodejs.org/)
@@ -13,76 +13,7 @@ Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt:
 - **Python** (phiên bản 3.8 trở lên) - [Tải tại đây](https://www.python.org/downloads/)
 - **PyTorch** (cho mô hình GNN)
 
-### ✅ Kiểm Tra Phiên Bản / Check Versions
-
-Mở Terminal/PowerShell và chạy các lệnh sau để kiểm tra phiên bản:
-
-**1. Kiểm tra Node.js:**
-```powershell
-node --version
-# Hoặc
-node -v
-```
-Kết quả mong đợi: `v14.x.x` hoặc cao hơn (ví dụ: `v18.17.0`)
-
-**2. Kiểm tra npm (Node Package Manager):**
-```powershell
-npm --version
-# Hoặc
-npm -v
-```
-Kết quả mong đợi: `6.x.x` hoặc cao hơn (ví dụ: `9.6.7`)
-
-**3. Kiểm tra Python:**
-```powershell
-python --version
-# Hoặc thử
-python3 --version
-```
-Kết quả mong đợi: `Python 3.8.x` hoặc cao hơn (ví dụ: `Python 3.11.4`)
-
-**4. Kiểm tra MongoDB:**
-```powershell
-mongod --version
-# Hoặc
-mongo --version
-```
-Kết quả mong đợi: `db version v4.x.x` hoặc cao hơn
-
-**5. Kiểm tra PyTorch (sau khi cài):**
-```powershell
-python -c "import torch; print(torch.__version__)"
-```
-Kết quả mong đợi: Phiên bản PyTorch (ví dụ: `2.0.1`)
-
-**Lưu ý:**
-- Nếu lệnh không được nhận diện, có nghĩa là chưa cài đặt hoặc chưa thêm vào PATH
-- Trên Windows, có thể cần khởi động lại Terminal sau khi cài đặt
-- Nếu `python` không hoạt động, thử `python3`
-- Nếu `pip` không hoạt động, thử `pip3`
-
 ---
-
-## 🚀 Installation guide for experiment 
-1. Create environment
-```bash
-conda create -n gnn python=3.8 -y
-conda activate gnn
-```
-2. Install pytorch with CUDA
-```bash
-pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
-```
-
-3. Install pytorch geometric
-```bash
-pip install torch-geometric 
-```
-4. Install other requirements
-```bash
-pip install -r requirements.txt
-```
-
 
 ## 🚀 Installation guide for demo
 
@@ -104,13 +35,13 @@ npm install
 
 #### 2.2. Install Python Dependencies
 
-**Option A: Using Conda (Recommended)**
+**Option A: Using Conda (gnn)**
 ```powershell
 # Create conda environment from file
 conda env create -f framework/environment.yml
 
 # Activate environment
-conda activate recommender
+conda activate gnn
 ```
 
 **Option B: Using pip + venv**
@@ -124,9 +55,14 @@ python -m venv .venv
 # Activate venv (Linux/Mac)
 # source .venv/bin/activate
 
-# Install dependencies
-pip install torch numpy pandas scipy scikit-learn matplotlib seaborn tqdm
-pip install -r framework/requirements_inference.txt
+# Install PyTorch with CUDA 11.7
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+
+# Install PyTorch Geometric
+pip install torch-geometric
+
+# Install other dependencies
+pip install -r requirements.txt
 ```
 
 ### Step 3: Config environment
@@ -266,8 +202,6 @@ http://localhost:3000
 ```
 
 ---
-
-## 🎯 How Real-Time Updates Work
 
 ### Architecture Overview
 The system now integrates a **Python Flask inference service** that serves the trained LightGCN model:
