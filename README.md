@@ -20,7 +20,7 @@ Trước khi cài đặt, đảm bảo máy tính của bạn đã cài đặt:
 ### Step 1: Clone or download source
 ```bash
 # Nếu dùng Git
-git clone <repository-url>
+git clone <https://github.com/tqanh123/RecommenderSystem.git>
 cd RecommenderSystem
 
 # Hoặc giải nén file zip vào thư mục RecommenderSystem
@@ -203,25 +203,6 @@ http://localhost:3000
 
 ---
 
-### Architecture Overview
-The system now integrates a **Python Flask inference service** that serves the trained LightGCN model:
-
-```
-User Interaction (Click/Like/Share)
-         ↓
-Frontend (index.html) - Logs interaction
-         ↓
-Backend (server.js) - Updates user embedding
-         ↓
-Frontend - Re-fetches updated user embedding
-         ↓
-Canvas Redraw - User position updates in real-time
-         ↓
-Python Service - Gets new recommendations from LightGCN
-         ↓
-Frontend - Displays updated recommendations
-```
-
 ### What Happens When You Interact?
 
 1. **User clicks/likes/shares an item:**
@@ -285,7 +266,7 @@ Frontend - Displays updated recommendations
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 ```
 RecommenderSystem/
 ├── server.js                    # Node.js server chính
@@ -313,7 +294,7 @@ RecommenderSystem/
 
 ---
 
-## 🔧  Troubleshooting
+## Troubleshooting
 
 ### Error: "Cannot find module"
 ```powershell

@@ -1,16 +1,18 @@
-matplotlib
-seaborn
-scikit-learn
-pandas
-numpy
-tqdm
-polars
-pandas
-joblib
-scipy
+# Core dependencies
+torch>=1.13.0
+numpy>=1.21.0
+pandas>=1.3.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+matplotlib>=3.4.0
+seaborn>=0.11.0
+tqdm>=4.62.0
+joblib>=1.1.0
 ipykernel
-torch
 
-# model inference 
-flask==2.3.3
-flask-cors==4.0.0
+# Flask service dependencies
+flask>=2.0.0
+flask-cors>=3.0.10
+
+# Additional utilities
+requests>=2.26.0
